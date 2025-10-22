@@ -1,3 +1,8 @@
+"""Dependencies for authenticating requests against the local user database."""
+
+from collections.abc import Generator
+from typing import Annotated, Any
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -7,20 +12,18 @@ from src.core.config import settings
 from src.crud import user as user_crud
 from src.db.session import SessionLocal
 from src.models.user import User
-from src.schemas.token import TokenData
-
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login/token")
 
 
-def get_db():
-    """
-    Get database session.
+def get_db() -> Generator[Session, None, None]:
+    """Yield a SQLAlchemy session tied to the current request lifecycle.
 
     Yields
     ------
     Session
         Database session.
+
     """
     db = SessionLocal()
     try:
@@ -30,44 +33,50 @@ def get_db():
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> User:
-    """
-    Get current user.
+    """Resolve the currently authenticated user from a JWT bearer token.
 
     Parameters
     ----------
-    token : str, optional
-        Token, by default Depends(oauth2_scheme).
-    db : Session, optional
-        Database session, by default Depends(get_db).
+    token : str
+        Encoded JWT provided by the OAuth2 password grant.
+    db : Session
+        Database session used to retrieve the persisted user.
 
     Returns
     -------
     User
-        User.
+        Database user model associated with the provided token.
 
     Raises
     ------
     HTTPException
-        If user is not found or token is invalid.
+        Raised when the token is invalid or the referenced user does not exist.
+
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    payload: dict[str, Any]
     try:
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
         )
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-        token_data = TokenData(email=email)
-    except JWTError:
+    except JWTError as exc:
+        raise credentials_exception from exc
+
+    subject_claim = payload.get("sub")
+    if not isinstance(subject_claim, str):
         raise credentials_exception
-    user = user_crud.get_user_by_email(db, email=token_data.email)
+    subject = subject_claim
+
+    user = user_crud.get_user_by_email(db, email=subject)
     if user is None:
         raise credentials_exception
     return user

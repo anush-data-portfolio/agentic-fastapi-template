@@ -1,10 +1,8 @@
-"""
-Main application file.
-"""
+"""Initialize the FastAPI application and register API routers."""
 
 from fastapi import FastAPI
 
-from src.api import login, users, oauth
+from src.api import login, oauth, users
 from src.core.config import settings
 from src.db.base import Base
 from src.db.session import engine

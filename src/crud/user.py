@@ -1,3 +1,5 @@
+"""User persistence helpers built on SQLAlchemy sessions."""
+
 from sqlalchemy.orm import Session
 
 from src.core.security import get_password_hash
@@ -6,39 +8,39 @@ from src.schemas.user import UserCreate
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
-    """
-    Get user by email.
+    """Retrieve a user by email address, if one exists.
 
     Parameters
     ----------
     db : Session
-        Database session.
+        Active database session.
     email : str
-        User email.
+        Email address used to look up the user.
 
     Returns
     -------
     User | None
-        User or None.
+        Matching user instance or None when absent.
+
     """
     return db.query(User).filter(User.email == email).first()
 
 
 def create_user(db: Session, user: UserCreate) -> User:
-    """
-    Create user.
+    """Persist a new user with a securely hashed password.
 
     Parameters
     ----------
     db : Session
-        Database session.
+        Active database session.
     user : UserCreate
-        User create schema.
+        Schema containing the user information to persist.
 
     Returns
     -------
     User
-        User.
+        Newly created database user model.
+
     """
     hashed_password = get_password_hash(user.password)
     db_user = User(email=user.email, hashed_password=hashed_password)

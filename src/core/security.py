@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+"""Password hashing helpers and JWT token utilities."""
+
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from jose import jwt
 from passlib.context import CryptContext
@@ -10,63 +13,63 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    """
-    Create access token.
+def create_access_token(
+    data: dict[str, Any],
+    expires_delta: timedelta | None = None,
+) -> str:
+    """Create a signed JWT access token for the provided payload.
 
     Parameters
     ----------
-    data : dict
-        Data to encode.
+    data : dict[str, Any]
+        Claims to encode into the resulting token.
     expires_delta : timedelta | None, optional
-        Expires delta, by default None.
+        Optional expiration interval; defaults to 15 minutes when omitted.
 
     Returns
     -------
     str
-        Access token.
+        Encoded JWT string suitable for use as a bearer token.
+
     """
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+    now = datetime.now(tz=timezone.utc)
+    expire = now + expires_delta if expires_delta else now + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify password.
+    """Verify that a plaintext password matches its hashed counterpart.
 
     Parameters
     ----------
     plain_password : str
-        Plain password.
+        Password supplied by the user.
     hashed_password : str
-        Hashed password.
+        Stored password hash retrieved from persistence.
 
     Returns
     -------
     bool
-        True if password is correct, False otherwise.
+        True when the password matches, otherwise False.
+
     """
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """
-    Get password hash.
+    """Hash a plaintext password using the configured password context.
 
     Parameters
     ----------
     password : str
-        Password.
+        Password requiring hashing.
 
     Returns
     -------
     str
-        Hashed password.
+        Resulting password hash safe for storage.
+
     """
     return pwd_context.hash(password)

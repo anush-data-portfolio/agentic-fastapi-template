@@ -1,6 +1,4 @@
-"""
-Database session management.
-"""
+"""Session and engine factories for connecting to the configured database."""
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

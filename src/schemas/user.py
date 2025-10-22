@@ -1,26 +1,22 @@
+"""Pydantic representations of user data transfer objects."""
+
 from pydantic import BaseModel
 
 
 class UserBase(BaseModel):
-    """
-    Base user schema.
-    """
+    """Shared attributes exposed for user-facing payloads."""
 
     email: str
 
 
 class UserCreate(UserBase):
-    """
-    User create schema.
-    """
+    """Payload required to register a new user."""
 
     password: str
 
 
 class User(UserBase):
-    """
-    User schema.
-    """
+    """Response model returned for persisted users."""
 
     id: int
     is_active: bool

@@ -1,5 +1,10 @@
+"""OAuth redirect and callback handlers for third-party providers."""
+
+from typing import Any
+
 from fastapi import APIRouter
 from starlette.requests import Request
+from starlette.responses import Response
 
 from src.core.oauth import oauth
 
@@ -7,42 +12,42 @@ router = APIRouter()
 
 
 @router.get("/login/{provider}")
-async def login(request: Request, provider: str):
-    """
-    Redirect to the provider's login page.
+async def login(request: Request, provider: str) -> Response:
+    """Redirect to the selected OAuth provider for authentication.
 
     Parameters
     ----------
     request : Request
-        The request object.
+        The inbound HTTP request initiating the OAuth login.
     provider : str
-        The OAuth provider.
+        The OAuth provider identifier registered with the application.
 
     Returns
     -------
-    RedirectResponse
-        A redirect response to the provider's login page.
+    Response
+        Redirect response that sends the user to the provider's login page.
+
     """
     redirect_uri = request.url_for("auth", provider=provider)
     return await oauth.create_client(provider).authorize_redirect(request, redirect_uri)
 
 
 @router.get("/auth/{provider}")
-async def auth(request: Request, provider: str):
-    """
-    Handle the provider's callback.
+async def auth(request: Request, provider: str) -> dict[str, Any]:
+    """Handle the OAuth provider callback and normalize the token payload.
 
     Parameters
     ----------
     request : Request
-        The request object.
+        The inbound HTTP request received from the OAuth provider callback.
     provider : str
-        The OAuth provider.
+        The OAuth provider identifier registered with the application.
 
     Returns
     -------
-    dict
-        A dictionary containing the user information and the token.
+    dict[str, Any]
+        Dictionary containing the identity information and provider token payload.
+
     """
     token = await oauth.create_client(provider).authorize_access_token(request)
     user = await oauth.create_client(provider).parse_id_token(request, token)

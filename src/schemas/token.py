@@ -1,18 +1,16 @@
+"""Pydantic models describing OAuth2 token payloads."""
+
 from pydantic import BaseModel
 
 
 class Token(BaseModel):
-    """
-    Token schema.
-    """
+    """Access token returned by the authentication endpoints."""
 
     access_token: str
     token_type: str
 
 
 class TokenData(BaseModel):
-    """
-    Token data schema.
-    """
+    """Subset of token claims used during authentication."""
 
     email: str | None = None
